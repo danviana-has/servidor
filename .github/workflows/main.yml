@@ -1,0 +1,31 @@
+name: Executar Robo GM - Busca Sob Demanda
+
+# Define o gatilho para execução manual via interface ou API
+on:
+  workflow_dispatch:
+    inputs:
+      termo_busca:
+        description: 'Digite o termo que o robô deve pesquisar agora:'
+        required: true
+        default: 'machine learning'
+        type: string
+
+jobs:
+  run-search:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Baixar código do repositório
+      uses: actions/checkout@v4
+
+    - name: Configurar o Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Executar Motor de Busca GM
+      env:
+        GM_ROBO_TOKEN: ${{ secrets.GM_ROBO_TOKEN }}
+        # Puxa dinamicamente o termo que você digitou no formulário
+        TERMO_PESQUISA: ${{ github.event.inputs.termo_busca }}
+      run: python robo.py
