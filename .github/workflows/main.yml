@@ -1,17 +1,21 @@
-name: Executar Robo GM - Busca Sob Demanda
+name: Executar Spider Crawler GM
 
-# Define o gatilho para execução manual via interface ou API
 on:
   workflow_dispatch:
     inputs:
-      termo_busca:
-        description: 'Digite o termo que o robô deve pesquisar agora:'
+      url_inicial:
+        description: 'URL inicial para o Spider começar o crawling:'
         required: true
-        default: 'machine learning'
+        default: 'https://example.com'
+        type: string
+      max_paginas:
+        description: 'Limite máximo de páginas para indexar nesta rodada:'
+        required: true
+        default: '15'
         type: string
 
 jobs:
-  run-search:
+  run-crawler:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,9 +27,13 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Executar Motor de Busca GM
+    - name: Instalar dependências leves
+      run: |
+        python -m pip install --upgrade pip
+        pip install aiohttp beautifulsoup4
+
+    - name: Executar Spider Crawler
       env:
-        GM_ROBO_TOKEN: ${{ secrets.GM_ROBO_TOKEN }}
-        # Puxa dinamicamente o termo que você digitou no formulário
-        TERMO_PESQUISA: ${{ github.event.inputs.termo_busca }}
+        URL_INICIAL: ${{ github.event.inputs.url_inicial }}
+        MAX_PAGINAS: ${{ github.event.inputs.max_paginas }}
       run: python robo.py
