@@ -1,48 +1,48 @@
 name: Servidor GM - Spider Crawler Autônomo
 
 on:
-  workflow_dispatch:
-    inputs:
-      url_inicial:
-        description: 'URL de largada para o Spider começar o crawling:'
-        required: true
-        default: 'https://example.com'
-        type: string
-      max_paginas:
-        description: 'Limite máximo de páginas para indexar nesta rodada:'
-        required: true
-        default: '15'
-        type: string
+  issues:
+    types: [opened]
 
 jobs:
   crawler-service:
+    # Só roda se a issue começar com o comando operativo [CRAWLER]
+    if: startsWith(github.event.issue.title, '[CRAWLER]')
     runs-on: ubuntu-latest
 
-    # Permissão necessária para o robô commitar o JSON atualizado
     permissions:
       contents: write
+      issues: write
 
     steps:
     - name: Baixar motor de busca do repositório
       uses: actions/checkout@v4
+
+    - name: Extrair URL do título da Issue
+      id: extrair_url
+      run: |
+        # O título vem como "[CRAWLER] https://exemplo.com"
+        TITULO="${{ github.event.issue.title }}"
+        URL_MINERAR=$(echo "$TITULO" | sed 's/\[CRAWLER\] //')
+        echo "ALVO_EXTRAIDO=$URL_MINERAR" >> $GITHUB_ENV
+        echo "Iniciando varredura no alvo: $URL_MINERAR"
 
     - name: Inicializar ambiente Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
-    - name: Instalar bibliotecas de requisição assíncrona
+    - name: Instalar bibliotecas
       run: |
         python -m pip install --upgrade pip
         pip install aiohttp beautifulsoup4
 
     - name: Executar Spider Rastreamento
       env:
-        URL_INICIAL: ${{ github.event.inputs.url_inicial }}
-        MAX_PAGINAS: ${{ github.event.inputs.max_paginas }}
+        URL_INICIAL: ${{ env.ALVO_EXTRAIDO }}
+        MAX_PAGINAS: '15'
       run: python robo.py
 
-    # O robô injeta os novos dados indexados no repositório automaticamente
     - name: Salvar e publicar resultados no repositório
       run: |
         git config --global user.name "GM Robot Service"
@@ -50,3 +50,8 @@ jobs:
         git add resultados.json || true
         git commit -m "data: atualizando indices do motor de busca [skip ci]" || true
         git push
+
+    - name: Fechar e Concluir a Issue automaticamente
+      uses: peter-evans/close-issue@v3
+      with:
+        comment: "O Motor de busca GM processou com sucesso os índices para o alvo solicitado."
