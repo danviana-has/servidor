@@ -1,6 +1,7 @@
 import os
 import sys
 import asyncio
+import json
 import aiohttp
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
@@ -14,11 +15,9 @@ class GMSpiderCrawler:
         self.dados_indexados = {}
 
     def _limpar_e_validar_url(self, url, url_base):
-        """Resolve links relativos e valida se a estrutura da URL é correta."""
         try:
             url_completa = urljoin(url_base, url)
             parsed = urlparse(url_completa)
-            # Filtra apenas protocolos web reais
             if parsed.scheme in ['http', 'https'] and parsed.netloc:
                 return url_completa
         except Exception:
@@ -26,7 +25,6 @@ class GMSpiderCrawler:
         return None
 
     async def rastrear_pagina(self, session, url):
-        """Baixa o HTML da página, extrai o conteúdo e descobre novos caminhos."""
         if url in self.paginas_visitadas:
             return
 
@@ -43,11 +41,10 @@ class GMSpiderCrawler:
                 html = await response.text()
                 soup = BeautifulSoup(html, 'html.parser')
 
-                # Captura dados simples para indexação (Título e Texto limpo)
                 titulo = soup.title.string.strip() if soup.title else "Sem título"
+                # Salva o título associado à URL
                 self.dados_indexados[url] = titulo
 
-                # Varre todas as tags de link <a> da página
                 for tag_a in soup.find_all('a', href=True):
                     novo_link = self._limpar_e_validar_url(tag_a['href'], url)
                     if novo_link and novo_link not in self.paginas_visitadas and novo_link not in self.fila_links:
@@ -65,29 +62,26 @@ class GMSpiderCrawler:
 
         async with aiohttp.ClientSession() as session:
             while self.fila_links and len(self.paginas_visitadas) < self.max_paginas:
-                # Retira o próximo link da fila (estratégia de Breadth-First Search)
                 url_atual = self.fila_links.pop(0)
                 await self.rastrear_pagina(session, url_atual)
-                # Pequena pausa de engenharia de 0.5s para não sobrecarregar os alvos
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.5) # Pausa polida de requisições
 
-        self._exibir_relatorio_final()
+        self._salvar_dados_em_disco()
 
-    def _exibir_relatorio_final(self):
-        print("\n================ RELATÓRIO DE INDEXAÇÃO ================")
-        print(f"Varredura concluída. Total de páginas mineradas: {len(self.paginas_visitadas)}")
-        print(f"Links restantes descobertos na fila: {len(self.fila_links)}")
-        print("--------------------------------------------------------")
-        for idx, (url, titulo) in enumerate(self.dados_indexados.items(), 1):
-            print(f"{idx}. [{titulo}] -> {url}")
+    def _salvar_dados_em_disco(self):
+        print("\n[MIGRATION] Compilando base de dados indexada para o Frontend...")
+        try:
+            # Exporta os resultados direto para o arquivo que a página web lê
+            with open('resultados.json', 'w', encoding='utf-8') as f:
+                json.dump(self.dados_indexados, f, indent=4, ensure_ascii=False)
+            print("[SUCESSO] Arquivo resultados.json gerado com sucesso.")
+        except Exception as e:
+            print(f"[ERRO] Falha ao salvar arquivo em disco: {e}")
         print("========================================================\n")
 
 if __name__ == "__main__":
-    # Captura os parâmetros inseridos sob demanda na interface do GitHub
     url_alvo = os.environ.get("URL_INICIAL", "https://example.com").strip()
     limite = int(os.environ.get("MAX_PAGINAS", "15"))
 
     crawler = GMSpiderCrawler(url_inicial=url_alvo, max_paginas=limite)
-    
-    # Roda o loop assíncrono do robô
     asyncio.run(crawler.iniciar_varredura())
