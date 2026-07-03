@@ -1,0 +1,13 @@
+{
+    "https://google.com": "Google",
+    "https://mail.google.com/mail/&ogbl": "Gmail",
+    "https://www.google.com/imghp?hl=en&ogbl": "Google Images",
+    "https://www.google.com/intl/en/about/products": "Google's products and services  - About Google",
+    "https://accounts.google.com/ServiceLogin?hl=en&passive=true&continue=https://www.google.com/&ec=GAZAmgQ": "Sign in - Google Accounts",
+    "https://google.com/advanced_search?hl=en&authuser=0": "Google Advanced Search",
+    "https://google.com/intl/en/ads/": "Reach Customers & Sell More with Online Advertising - Google Ads",
+    "https://google.com/services/": "Get Listed on Google - Google Business Profile",
+    "https://google.com/intl/en/about.html": "About Google: Our products, technology and company information - About Google",
+    "https://support.google.com/accounts?p=signin_privatebrowsing&hl=en-US": "Sign in on a device that's not yours - Computer - Google Account Help",
+    "https://support.google.com/accounts?hl=en-US&p=account_iph": "Google Account Help"
+}
