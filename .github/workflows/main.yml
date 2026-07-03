@@ -1,30 +1,26 @@
 name: Servidor GM - Spider Crawler Autônomo
 
 on:
-  issues:
-    types: [opened]
+  push:
+    paths:
+      - 'alvo.txt' # O Actions só acorda quando este arquivo for alterado
 
 jobs:
   crawler-service:
-    # Só roda se a issue começar com o comando operativo [CRAWLER]
-    if: startsWith(github.event.issue.title, '[CRAWLER]')
     runs-on: ubuntu-latest
 
     permissions:
       contents: write
-      issues: write
 
     steps:
     - name: Baixar motor de busca do repositório
       uses: actions/checkout@v4
 
-    - name: Extrair URL do título da Issue
-      id: extrair_url
+    - name: Ler URL solicitada pelo Frontend
+      id: obter_url
       run: |
-        # O título vem como "[CRAWLER] https://exemplo.com"
-        TITULO="${{ github.event.issue.title }}"
-        URL_MINERAR=$(echo "$TITULO" | sed 's/\[CRAWLER\] //')
-        echo "ALVO_EXTRAIDO=$URL_MINERAR" >> $GITHUB_ENV
+        URL_MINERAR=$(cat alvo.txt | xargs)
+        echo "URL_INICIAL=$URL_MINERAR" >> $GITHUB_ENV
         echo "Iniciando varredura no alvo: $URL_MINERAR"
 
     - name: Inicializar ambiente Python
@@ -32,26 +28,24 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Instalar bibliotecas
+    - name: Instalar bibliotecas de requisição assíncrona
       run: |
         python -m pip install --upgrade pip
         pip install aiohttp beautifulsoup4
 
     - name: Executar Spider Rastreamento
       env:
-        URL_INICIAL: ${{ env.ALVO_EXTRAIDO }}
+        URL_INICIAL: ${{ env.URL_INICIAL }}
         MAX_PAGINAS: '15'
       run: python robo.py
 
+    # O robô usa o Secret protegido para commitar de volta no repositório público
     - name: Salvar e publicar resultados no repositório
+      env:
+        GITHUB_TOKEN: ${{ secrets.GM_PAT_TOKEN }} # Puxando a sua variável secreta guardada
       run: |
         git config --global user.name "GM Robot Service"
         git config --global user.email "robo@gmcorporation.com.br"
         git add resultados.json || true
         git commit -m "data: atualizando indices do motor de busca [skip ci]" || true
         git push
-
-    - name: Fechar e Concluir a Issue automaticamente
-      uses: peter-evans/close-issue@v3
-      with:
-        comment: "O Motor de busca GM processou com sucesso os índices para o alvo solicitado."
